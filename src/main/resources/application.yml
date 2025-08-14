@@ -1,0 +1,49 @@
+server:
+  port: 8080
+spring:
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+    web-application-type: reactive
+  application:
+    name: Oauth
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/sru_library
+    username: root
+    password: viwath@261102
+  sql:
+    init:
+      mode: never
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 1090690644469-0nphu70gjn0uf6u4eujpj6lg3so56qh5.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - openid
+              - profile
+              - email
+          github:
+            client-id: Ov23liEqNTpVdmrNTzGL
+            client-secret: 507d02882a7610604649b98ad5f471298b5377e0
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+
+      resourceserver:
+        jwt:
+          issuer-uri: https://accounts.google.com
+          jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+
+
+jwt:
+  secret: d3d86ee52d022c23efddf25f3d7e7e6c06292a14d1040e4ba4212eea543e909b9dbc059029dbf9194bf611c15d4af8ee676fcc5be3b2d6a13bbed3f2ae4964d0587cdf0280d0e1b37ff1317bae0c2a1cc232052da0046849cbc19888f6dbeb5ad62b3c679f80a4fbadb4de2c54089e5892c0a0d1a2c147fbf674c251331fa37187803b45ca4f3fc4753beccef5775520934b60fad49b6656caa325ba51a35b75bfcc4c7da2fb5f1388f97460b40fdb6bf340802461f1e46e0f5f19fd0e66beaa6b8a0142872285b315cee42adbc749e883f009527a1fd9450d47616c94380cf93f29532ec22abb4b11db30559e00f0608e59ee40bc500d687997c6484e831c5c
+
+logging:
+  level:
+    org.springframework.security: DEBUG
