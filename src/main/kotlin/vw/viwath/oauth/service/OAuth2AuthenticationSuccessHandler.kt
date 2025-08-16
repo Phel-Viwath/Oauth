@@ -41,8 +41,8 @@ class OAuth2AuthenticationSuccessHandler(
         resp.headers.add("Content-Type", "application/json")
         val json = """
             {
-                "accessToken":"${authResponse.accessToken}"
-                ,"refreshToken":"${authResponse.refreshToken}"
+                "accessToken":"${authResponse.data?.accessToken}"
+                ,"refreshToken":"${authResponse.data?.refreshToken}"
             }
         """.trimIndent()
         val buffer = resp.bufferFactory().wrap(json.toByteArray())

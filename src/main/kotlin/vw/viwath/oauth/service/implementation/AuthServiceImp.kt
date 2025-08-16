@@ -1,21 +1,19 @@
 package vw.viwath.oauth.service.implementation
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
+import vw.viwath.oauth.common.ApiResponse
 import vw.viwath.oauth.common.Email
 import vw.viwath.oauth.common.ProviderId
-import vw.viwath.oauth.model.AuthProvider
-import vw.viwath.oauth.model.AuthResponse
-import vw.viwath.oauth.model.LoginRequest
-import vw.viwath.oauth.model.RegisterRequest
-import vw.viwath.oauth.model.User
-import vw.viwath.oauth.model.UserDto
-import vw.viwath.oauth.model.toUserDto
+import vw.viwath.oauth.jwt.JwtService
+import vw.viwath.oauth.model.*
 import vw.viwath.oauth.repository.AuthRepository
 import vw.viwath.oauth.service.AuthService
-import vw.viwath.oauth.jwt.JwtService
 import java.time.Instant
-import java.util.UUID
 
 @Component
 class AuthServiceImp(
@@ -23,83 +21,112 @@ class AuthServiceImp(
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: JwtService
 ) : AuthService {
-    override suspend fun register(request: RegisterRequest): UserDto {
-        val existingUser = authRepository.findUserByEmail(request.email)
-        require(existingUser != null){
-            "User already exists with email"
-        }
-        val hash = passwordEncoder.encode(request.password)
-        val user = User(
-            userId = UUID.randomUUID().toString(),
-            email = request.email,
-            passwordHash = hash,
-            provider = AuthProvider.LOCAL,
-            createAt = Instant.now(),
-            updateAt = Instant.now()
-        )
 
-        val savedUser = authRepository.save(user)
-        return savedUser.toUserDto()
+    private val logger = LoggerFactory.getLogger(AuthServiceImp::class.java)
+
+    override suspend fun register(request: AuthRequest): ApiResponse<UserDto> {
+        return try {
+            if (request.email.isEmpty() || request.password.isEmpty())
+                return ApiResponse.badRequest("Field cannot be empty.")
+
+            val existingUser = authRepository.findUserByEmail(request.email)
+            if (existingUser != null)
+                return ApiResponse.conflict(message = "User already exists with email")
+
+            val hash = passwordEncoder.encode(request.password)
+            val user = User(
+                email = request.email,
+                password = hash,
+                provider = AuthProvider.LOCAL,
+                createAt = Instant.now(),
+                updateAt = Instant.now()
+            )
+            val savedUser = authRepository.save(user)
+            logger.info("$savedUser")
+            ApiResponse.created(savedUser.toUserDto())
+        }catch (e: Exception){
+            logger.error(e.message)
+            ApiResponse.internalServerError("Failed to create user: ${e.message}")
+        }
     }
 
-    override suspend fun authenticate(request: LoginRequest): AuthResponse {
-        val user = authRepository.findUserByEmail(request.email)
-            ?: throw IllegalStateException("Invalid credential.")
+    override suspend fun authenticate(request: AuthRequest): ApiResponse<AuthResponse> {
+        return try {
+            if (request.email.isEmpty() || request.password.isEmpty())
+                return ApiResponse.badRequest("Field cannot be empty.")
 
-        require(user.provider != AuthProvider.LOCAL){
-            throw IllegalStateException("User registered via OAuth. Use OAuth login")
-        }
+            val user = authRepository.findUserByEmail(request.email)
+                ?: return ApiResponse.notFound("Invalid credential.")
 
-        val isPasswordMatch = passwordEncoder.matches(request.password, user.passwordHash)
-        if (!isPasswordMatch)
-            throw IllegalStateException("Invalid credential.")
-
-        val accessToken = jwtService.generateAccessToken(user)
-        val refreshToken = jwtService.generateRefreshToken()
-
-        return AuthResponse(
-            accessToken = accessToken,
-            refreshToken = refreshToken
-        )
-    }
-
-    override suspend fun processOAuthUser(email: Email?, providerId: ProviderId, provider: AuthProvider): AuthResponse {
-        val exitingUserByProvider = authRepository.findUserByProviderId(providerId)
-        val user = when{
-            exitingUserByProvider != null -> exitingUserByProvider
-            email != null -> {
-                val userByEmail = authRepository.findUserByEmail(email)
-                if(userByEmail != null){
-                    if(userByEmail.providerId == null){
-                        val update = userByEmail.copy(providerId = providerId, provider = provider)
-                        authRepository.save(update)
-                    }
-                    else userByEmail
-                }
-                else{
-                    val newUser = User(
-                        userId = UUID.randomUUID().toString(),
-                        email = email,
-                        passwordHash = null,
-                        provider = provider,
-                        providerId = providerId,
-                    )
-                    authRepository.save(newUser)
-                }
+            if(user.provider != AuthProvider.LOCAL){
+                return ApiResponse.badRequest("User registered via OAuth. Use OAuth login")
             }
-            else -> throw IllegalArgumentException("OAuth provider didn't return email")
+
+            val isPasswordMatch = passwordEncoder.matches(request.password, user.password)
+            if (!isPasswordMatch)
+                return ApiResponse.badRequest("Invalid credential.")
+
+            val accessToken = jwtService.generateAccessToken(user)
+            val refreshToken = jwtService.generateRefreshToken()
+
+            val authResponse = AuthResponse(accessToken, refreshToken)
+            ApiResponse.success(authResponse)
+        }catch (e: Exception){
+            ApiResponse.internalServerError("Fail to authenticate: ${e.message}")
         }
-
-        val accessToken = jwtService.generateAccessToken(user)
-        val refreshToken = jwtService.generateRefreshToken()
-
-        return AuthResponse(
-            accessToken = accessToken,
-            refreshToken = refreshToken
-        )
     }
 
-    override suspend fun refresh(token: String): AuthResponse {
+    override suspend fun processOAuthUser(
+        email: Email?,
+        providerId: ProviderId,
+        provider: AuthProvider
+    ): ApiResponse<AuthResponse> {
+        return try {
+            val exitingUserByProvider = authRepository.findUserByProviderId(providerId)
+            val user = when{
+                exitingUserByProvider != null -> exitingUserByProvider
+                email != null -> {
+                    val userByEmail = authRepository.findUserByEmail(email)
+                    if(userByEmail != null){
+                        if(userByEmail.providerId == null){
+                            val update = userByEmail.copy(providerId = providerId, provider = provider)
+                            authRepository.save(update)
+                        }
+                        else userByEmail
+                    }
+                    else{
+                        val newUser = User(
+                            email = email,
+                            password = null,
+                            provider = provider,
+                            providerId = providerId,
+                        )
+                        authRepository.save(newUser)
+                    }
+                }
+                else -> return ApiResponse.badRequest("OAuth provider didn't return email")
+            }
+
+            val accessToken = jwtService.generateAccessToken(user)
+            val refreshToken = jwtService.generateRefreshToken()
+
+            val auth = AuthResponse(accessToken, refreshToken)
+            ApiResponse.success(auth)
+        }catch (e: Exception){
+            ApiResponse.internalServerError("Fail to process auth: ${e.message}")
+        }
+    }
+
+    override suspend fun refresh(token: String): ApiResponse<AuthResponse> {
         TODO("Not yet implemented")
+    }
+
+    override suspend fun getAllUser(): ApiResponse<List<UserDto>> {
+        return try {
+            val user = authRepository.getAllUserByProvider(AuthProvider.LOCAL).map { it.toUserDto() }.toList()
+            ApiResponse.success(user)
+        }catch (e: Exception){
+            ApiResponse.internalServerError("Fail to get user: ${e.message}")
+        }
     }
 }

@@ -1,8 +1,8 @@
 package vw.viwath.oauth.model
 
+import vw.viwath.oauth.common.Token
+
 data class AuthResponse(
-    val accessToken: String? = null,
-    val refreshToken: String? = null,
-    val errMessage: String? = null,
-    val isSuccess: Boolean = false
+    val accessToken: Token,
+    val refreshToken: Token
 )

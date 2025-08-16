@@ -2,7 +2,6 @@ package vw.viwath.oauth.jwt
 
 import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.core.GrantedAuthority
-import org.springframework.stereotype.Component
 
 class JwtAuthenticationToken(
     val userId: String,

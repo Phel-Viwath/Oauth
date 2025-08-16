@@ -3,7 +3,7 @@ package vw.viwath.oauth.model
 import vw.viwath.oauth.common.Email
 
 data class UserDto(
-    val userId: String,
+    val userId: String? = null,
     val email: Email,
     val provider: AuthProvider = AuthProvider.LOCAL
 )

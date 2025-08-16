@@ -9,7 +9,7 @@ spring:
     name: Oauth
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/sru_library
+    url: jdbc:mysql://localhost:3306/oauthtest
     username: root
     password: viwath@261102
   sql:
