@@ -3,6 +3,7 @@ package vw.viwath.oauth.controller
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
 import vw.viwath.oauth.common.ApiResponse
 import vw.viwath.oauth.common.toResponseEntity
 import vw.viwath.oauth.model.AuthRequest
@@ -30,7 +31,7 @@ class AuthController(
     suspend fun hello(): ResponseEntity<String> = ResponseEntity.ok("Hello")
 
     @GetMapping("/user")
-    suspend fun getAll(): ResponseEntity<ApiResponse<List<UserDto>>>{
+    suspend fun getAll(): ResponseEntity<ApiResponse<Flux<UserDto>>>{
         return authService.getAllUser().toResponseEntity()
     }
 

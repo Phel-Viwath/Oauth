@@ -3,7 +3,6 @@ package vw.viwath.oauth.service
 import kotlinx.coroutines.reactor.mono
 import org.springframework.context.annotation.Lazy
 import org.springframework.security.core.Authentication
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.security.web.server.WebFilterExchange
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler
@@ -26,13 +25,9 @@ class OAuth2AuthenticationSuccessHandler(
             ?: attrs["login"] as String?
         val providerId = attrs["sub"]?.toString() ?: attrs["id"]?.toString() ?: attrs["node_id"].toString()
 
-        val registrationId = authentication.details?.let {
-            (it as? OAuth2AuthenticationToken)?.authorizedClientRegistrationId
-        }  ?: (attrs["iss"]?.toString() ?: "unknown")
-
-        val provider = when(registrationId.lowercase()){
-            "google" -> AuthProvider.GOOGLE
-            "github" -> AuthProvider.GITHUB
+        val provider = when{
+            attrs["iss"]?.toString()?.contains("google") == true -> AuthProvider.GOOGLE
+            attrs["node_id"] != null -> AuthProvider.GITHUB
             else -> AuthProvider.LOCAL
         }
         val authResponse = authService.processOAuthUser(email, providerId, provider)

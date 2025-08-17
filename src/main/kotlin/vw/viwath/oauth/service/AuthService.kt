@@ -1,6 +1,7 @@
 package vw.viwath.oauth.service
 
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import vw.viwath.oauth.common.ApiResponse
 import vw.viwath.oauth.common.Email
 import vw.viwath.oauth.common.ProviderId
@@ -17,5 +18,5 @@ interface AuthService {
     suspend fun processOAuthUser(email: Email?, providerId: ProviderId, provider: AuthProvider): ApiResponse<AuthResponse>
     suspend fun refresh(token: Token): ApiResponse<AuthResponse>
 
-    suspend fun getAllUser(): ApiResponse<List<UserDto>>
+    suspend fun getAllUser(): ApiResponse<Flux<UserDto>>
 }

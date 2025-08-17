@@ -10,5 +10,3 @@ CREATE TABLE users(
     updated_at TIMESTAMP NOT NULL,
     PRIMARY KEY (userId)
 );
-
-select * from users;

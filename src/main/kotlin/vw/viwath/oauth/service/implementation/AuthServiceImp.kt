@@ -1,11 +1,11 @@
 package vw.viwath.oauth.service.implementation
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactor.asFlux
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Flux
 import vw.viwath.oauth.common.ApiResponse
 import vw.viwath.oauth.common.Email
 import vw.viwath.oauth.common.ProviderId
@@ -121,10 +121,10 @@ class AuthServiceImp(
         TODO("Not yet implemented")
     }
 
-    override suspend fun getAllUser(): ApiResponse<List<UserDto>> {
+    override suspend fun getAllUser(): ApiResponse<Flux<UserDto>> {
         return try {
-            val user = authRepository.getAllUserByProvider(AuthProvider.LOCAL).map { it.toUserDto() }.toList()
-            ApiResponse.success(user)
+            val user = authRepository.getAllUserByProvider(AuthProvider.LOCAL).map { it.toUserDto() }
+            ApiResponse.success(user.asFlux())
         }catch (e: Exception){
             ApiResponse.internalServerError("Fail to get user: ${e.message}")
         }
