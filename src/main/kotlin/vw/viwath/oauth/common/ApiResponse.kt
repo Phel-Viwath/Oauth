@@ -83,7 +83,7 @@ data class ApiResponse <T>(
 
 fun <T> ApiResponse<T>.toResponseEntity(): ResponseEntity<ApiResponse<T>>{
     val httpStatus = when(this.code){
-        0 -> HttpStatus.OK
+        200 -> HttpStatus.OK
         201 -> HttpStatus.CREATED
         400 -> HttpStatus.BAD_REQUEST
         404 -> HttpStatus.NOT_FOUND

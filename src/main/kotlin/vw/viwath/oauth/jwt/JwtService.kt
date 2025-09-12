@@ -2,7 +2,6 @@ package vw.viwath.oauth.jwt
 
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Service
 import vw.viwath.oauth.common.Token
@@ -11,7 +10,6 @@ import vw.viwath.oauth.model.JwtProperties
 import vw.viwath.oauth.model.User
 import java.security.Key
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.*
 
 @Service
@@ -22,6 +20,7 @@ class JwtService(
     val key = myKey.jwtSecret.toByteArray()
     private val secreteKey: Key = Keys.hmacShaKeyFor(key)
 
+    // Use to Signature Algorithm RS256 for match OAuth 2.0 Algorithm
 //    private val keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256)
 //    private val publicKey = keyPair.public
 //    private val privateKey = keyPair.private
@@ -39,13 +38,17 @@ class JwtService(
             .compact()
     }
 
-    fun generateRefreshToken(): String {
+    fun generateRefreshToken(user: User): String {
         val now = Instant.now()
         val exp = now.plusSeconds(props.refreshTokenExpirationSec)
+        val jti = UUID.randomUUID().toString()
+
         return Jwts.builder()
-            .setId(UUID.randomUUID().toString())
+            .setSubject(user.userId.toString())
+            .setId(jti)
             .setIssuedAt(Date.from(now))
             .setExpiration(Date.from(exp))
+            .claim("type", "refresh")
             .signWith(secreteKey)
             .compact()
     }
@@ -83,10 +86,7 @@ class JwtService(
 
     fun isRefreshToken(token: String): Boolean{
         val claim = getAllClaimFromToken(token)
-        val issueAt = claim.issuedAt.toInstant()
-        val expiration = claim.expiration.toInstant()
-        val duration = ChronoUnit.MILLIS.between(issueAt, expiration)
-        return duration == 86400000L
+        return claim["type"] == "refresh"
     }
 
 }

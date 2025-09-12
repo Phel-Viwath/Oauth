@@ -11,9 +11,14 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.security.web.server.SecurityWebFilterChain
+import org.springframework.security.web.server.header.ReferrerPolicyServerHttpHeadersWriter
+import org.springframework.security.web.server.header.XFrameOptionsServerHttpHeadersWriter
+import reactor.core.publisher.Mono
+
 import vw.viwath.oauth.jwt.JwtAuthenticationWebFilter
 import vw.viwath.oauth.jwt.JwtService
 import vw.viwath.oauth.service.OAuth2AuthenticationSuccessHandler
+import java.time.Duration
 import javax.crypto.spec.SecretKeySpec
 
 @Configuration
@@ -35,19 +40,60 @@ class SecurityConfig(
             .build()
     }
 
+//    @Bean
+//    fun xssWebFilter(): XSSProtectionWebFilter = XSSProtectionWebFilter()
+
     @Bean
     fun serverSecurityFilterChain(
         http: ServerHttpSecurity
     ): SecurityWebFilterChain{
 
         return http
+            .headers { header ->
+                header
+                    .contentTypeOptions{}
+                    .frameOptions { it.mode(XFrameOptionsServerHttpHeadersWriter.Mode.DENY) }
+                    .contentSecurityPolicy{ contentSecurityPolicySpec ->
+                        contentSecurityPolicySpec
+                            .policyDirectives(
+                                "default-src 'self'; " +
+                                        "script-src 'self'; " +
+                                        "style-src 'self' 'unsafe-inline'; " +
+                                        "img-src 'self' data:; " +
+                                        "font-src 'self'; " +
+                                        "connect-src 'self'; " +
+                                        "frame-ancestors 'none';"
+                            )
+                    }
+                    .hsts { hstsSpec ->
+                        hstsSpec
+                            .maxAge(Duration.ofDays(365))
+                            .includeSubdomains(true)
+                    }
+                    .referrerPolicy { rpc ->
+                        rpc.policy(ReferrerPolicyServerHttpHeadersWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                    }
+                    .writer { exchange ->
+                        val headersMap = exchange.request.headers
+                        headersMap.add("X-XSS-Protection", "1; mode=block")
+                        headersMap.add("X-Content-Type-Options", "nosniff")
+                        headersMap.add("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+                        Mono.empty()
+                    }
+
+            }
             .csrf { it.disable() }
             .httpBasic { it.disable() }
-            .formLogin { it.disable() }
+            //.formLogin { it.disable() }
             .logout { it.disable() }
             .authorizeExchange { exchanges ->
                 exchanges
-                    .pathMatchers("/api/auth/register", "/api/auth/login",  "/api/auth/me").permitAll()
+                    .pathMatchers(
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/user",
+                        "api/auth/refresh"
+                    ).permitAll()
                     .pathMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                     .anyExchange().authenticated()
             }
@@ -59,6 +105,7 @@ class SecurityConfig(
                     jwt.jwtDecoder(jwtDecoder())
                 }
             }
+//            .addFilterBefore(xssWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION)
             .addFilterBefore(JwtAuthenticationWebFilter(jwtService), SecurityWebFiltersOrder.AUTHENTICATION)
             .build()
     }

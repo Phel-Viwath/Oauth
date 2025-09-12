@@ -1,6 +1,7 @@
 package vw.viwath.oauth.service
 
 import kotlinx.coroutines.reactor.mono
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Lazy
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.core.user.OAuth2User
@@ -9,11 +10,15 @@ import org.springframework.security.web.server.authentication.ServerAuthenticati
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import vw.viwath.oauth.model.AuthProvider
+import vw.viwath.oauth.model.OAuthUser
 
 @Component
 class OAuth2AuthenticationSuccessHandler(
-    @Lazy private val authService: AuthService
+    @param:Lazy private val authService: AuthService
 ) : ServerAuthenticationSuccessHandler{
+
+    private val logger = LoggerFactory.getLogger(OAuth2AuthenticationSuccessHandler::class.java)
+
     override fun onAuthenticationSuccess(
         webFilterExchange: WebFilterExchange,
         authentication: Authentication,
@@ -21,16 +26,28 @@ class OAuth2AuthenticationSuccessHandler(
 
         val oauth2User = authentication.principal as OAuth2User
         val attrs = oauth2User.attributes
-        val email = attrs["email"] as String?
-            ?: attrs["login"] as String?
-        val providerId = attrs["sub"]?.toString() ?: attrs["id"]?.toString() ?: attrs["node_id"].toString()
 
+        // edit tomorrow
+        val email = attrs["iss"]?.toString()
+            ?: attrs["login"]?.toString()
+
+        logger.info("$email")
+
+        val providerId = attrs["sub"]?.toString() ?: attrs["id"]?.toString() ?: attrs["node_id"].toString()
         val provider = when{
             attrs["iss"]?.toString()?.contains("google") == true -> AuthProvider.GOOGLE
             attrs["node_id"] != null -> AuthProvider.GITHUB
             else -> AuthProvider.LOCAL
         }
-        val authResponse = authService.processOAuthUser(email, providerId, provider)
+
+        val oAuthUser = OAuthUser(
+            email,
+            name = null,
+            provider,
+            providerId
+        )
+
+        val authResponse = authService.processOAuthUser(oAuthUser)
 
         val resp = webFilterExchange.exchange.response
         resp.headers.add("Content-Type", "application/json")
