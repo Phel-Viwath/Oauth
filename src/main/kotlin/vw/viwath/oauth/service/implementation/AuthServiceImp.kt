@@ -72,28 +72,43 @@ class AuthServiceImp(
 
     override suspend fun processOAuthUser(oAuthUser: OAuthUser): ApiResponse<AuthResponse> {
         val email = oAuthUser.email
-        //val name = oAuthUser.name
         val provider = oAuthUser.provider
         val providerId = oAuthUser.providerId
         return try {
-            val exitingUserByProvider = authRepository.findUserByProviderId(providerId)
-            val user = when{
-                exitingUserByProvider != null -> exitingUserByProvider
+            val existingUserByProvider = authRepository.findUserByProviderId(providerId)
+            val user = when {
+                existingUserByProvider != null -> {
+                    logger.debug("Found existing user by providerId: ${existingUserByProvider.userId}")
+                    existingUserByProvider
+                }
                 email != null -> {
                     val userByEmail = authRepository.findUserByEmail(email)
                     if(userByEmail != null){
                         if(userByEmail.providerId == null){
-                            val update = userByEmail.copy(providerId = providerId, provider = provider)
-                            authRepository.save(update)
+                            logger.debug("Linking OAuth provider to existing user: ${userByEmail.userId}")
+                            val updated = userByEmail.copy(
+                                providerId = providerId,
+                                provider = provider,
+                                updateAt = Instant.now()
+                            )
+                            authRepository.save(updated)
                         }
+                        else if (userByEmail.providerId != providerId)
+                            // Email exists but linked to a different OAuth account
+                            return ApiResponse.conflict(
+                                "An account with this email already exists with a different ${userByEmail.provider} account"
+                            )
                         else userByEmail
                     }
-                    else{
+                    else {
+                        logger.debug("Creating new OAuth user with email: $email")
                         val newUser = User(
                             email = email,
                             password = null,
                             provider = provider,
                             providerId = providerId,
+                            createAt = Instant.now(),
+                            updateAt = Instant.now()
                         )
                         authRepository.save(newUser)
                     }
@@ -105,9 +120,12 @@ class AuthServiceImp(
             val refreshToken = jwtService.generateRefreshToken(user)
 
             val auth = AuthResponse(accessToken, refreshToken)
-            ApiResponse.success(auth)
+            ApiResponse.success(
+                data = auth,
+                message = "Authentication successful"
+            )
         }catch (e: Exception){
-            logger.error(e.message)
+            logger.error("Failed to process OAuth user: ${e.message}", e)
             ApiResponse.internalServerError("Fail to process auth: ${e.message}")
         }
     }

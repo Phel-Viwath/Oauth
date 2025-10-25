@@ -17,7 +17,7 @@ class JwtService(
     private val props: JwtProperties,
     private val myKey: MyKey
 ) {
-    val key = myKey.jwtSecret.toByteArray()
+    private val key = myKey.jwtSecret.toByteArray()
     private val secreteKey: Key = Keys.hmacShaKeyFor(key)
 
     // Use to Signature Algorithm RS256 for match OAuth 2.0 Algorithm

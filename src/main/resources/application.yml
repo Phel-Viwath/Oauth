@@ -1,15 +1,7 @@
 server:
   port: 8081
-  tomcat:
-    access log:
-      enabled: true
-      directory: logs
-      file-date-format: .yyyy-MM-dd
-      prefix: access_log
-      suffix: .log
 spring:
   main:
-    allow-circular-references: true
     allow-bean-definition-overriding: true
     web-application-type: reactive
   application:
@@ -58,19 +50,7 @@ jwt:
 
 logging:
   level:
-    vw.viwath.oauth: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
-  file:
-    name: app.log
-    path: /var/logs/
-
-management:
-  endpoints:
-    web:
-      exposure:
-        exclude: []
-  endpoint:
-    loggers:
-      access: unrestricted
+    reactor.netty.http.server.AccessLog: INFO
+#    org.springframework.web: DEBUG
+#    org.springframework.security: DEBUG
+#    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG

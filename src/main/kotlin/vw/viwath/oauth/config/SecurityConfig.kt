@@ -14,7 +14,6 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.header.ReferrerPolicyServerHttpHeadersWriter
 import org.springframework.security.web.server.header.XFrameOptionsServerHttpHeadersWriter
 import reactor.core.publisher.Mono
-
 import vw.viwath.oauth.jwt.JwtAuthenticationWebFilter
 import vw.viwath.oauth.jwt.JwtService
 import vw.viwath.oauth.service.OAuth2AuthenticationSuccessHandler
@@ -91,20 +90,20 @@ class SecurityConfig(
                     .pathMatchers(
                         "/api/auth/register",
                         "/api/auth/login",
-                        "/api/auth/user",
                         "api/auth/refresh"
                     ).permitAll()
                     .pathMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                    .anyExchange().authenticated()
+                    .anyExchange()
+                    .authenticated()
             }
             .oauth2Login { oauth2 ->
                 oauth2.authenticationSuccessHandler(oAuth2AuthenticationSuccessHandler)
             }
-            .oauth2ResourceServer { oauth2 ->
-                oauth2.jwt { jwt ->
-                    jwt.jwtDecoder(jwtDecoder())
-                }
-            }
+//            .oauth2ResourceServer { oauth2 ->
+//                oauth2.jwt { jwt ->
+//                    jwt.jwtDecoder(jwtDecoder())
+//                }
+//            }
 //            .addFilterBefore(xssWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION)
             .addFilterBefore(JwtAuthenticationWebFilter(jwtService), SecurityWebFiltersOrder.AUTHENTICATION)
             .build()

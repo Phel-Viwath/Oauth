@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.util.HtmlUtils
 import vw.viwath.oauth.common.ApiResponse
 import vw.viwath.oauth.common.Token
 import vw.viwath.oauth.common.toResponseEntity
@@ -14,9 +13,8 @@ import vw.viwath.oauth.model.AuthResponse
 import vw.viwath.oauth.model.UserDto
 import vw.viwath.oauth.service.AuthService
 
-@Suppress("")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/auth", produces = [MediaType.APPLICATION_JSON_VALUE])
 class AuthController(
     private val authService: AuthService
 ) {
@@ -28,7 +26,9 @@ class AuthController(
         return when{
             areFieldBlank -> ApiResponse.badRequest<UserDto>("Field cannot be blank.").toResponseEntity()
             isPasswordShort -> ApiResponse.badRequest<UserDto>("Password is too short.").toResponseEntity()
-            else -> authService.register(request).toResponseEntity()
+            else -> {
+                authService.register(request).toResponseEntity()
+            }
         }
     }
 
@@ -37,13 +37,9 @@ class AuthController(
         @Valid @RequestBody request: AuthRequest
     ): ResponseEntity<ApiResponse<AuthResponse>>{
         val areFieldBlank = request.email.isEmpty() || request.password.isEmpty()
-        val safeEmail = HtmlUtils.htmlEscape(request.email)
         return when{
             areFieldBlank -> ApiResponse.badRequest<AuthResponse>("Field cannot be blank").toResponseEntity()
-            else -> {
-                val safeRequest = request.copy(email = safeEmail)
-                authService.authenticate(safeRequest).toResponseEntity()
-            }
+            else -> authService.authenticate(request).toResponseEntity()
         }
     }
 
@@ -51,12 +47,12 @@ class AuthController(
     suspend fun refresh(
         @RequestParam refreshToken: Token
     ): ResponseEntity<ApiResponse<AuthResponse>>{
-        val safeToken = HtmlUtils.htmlEscape(refreshToken)
-        return authService.refresh(token = safeToken).toResponseEntity()
+        return authService.refresh(token = refreshToken).toResponseEntity()
     }
 
     @GetMapping("/me")
-    suspend fun hello(): ResponseEntity<String> = ResponseEntity.ok("Hello")
+    suspend fun hello(): ResponseEntity<ApiResponse<Map<String, String>>> =
+        ApiResponse.success(mapOf("message" to "Hello"), message = "OK").toResponseEntity()
 
     @GetMapping("/user")
     suspend fun getAll(): Flow<UserDto>{

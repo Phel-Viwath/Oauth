@@ -14,9 +14,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement
 @Configuration
 @EnableTransactionManagement
 class DatabaseConfig(
-    @Value("\${spring.datasource.url}") private val url: String,
-    @Value("\${spring.datasource.username}") private val username: String,
-    @Value("\${spring.datasource.password}") private val password: String
+    @param:Value("\${spring.datasource.url}") private val url: String,
+    @param:Value("\${spring.datasource.username}") private val username: String,
+    @param:Value("\${spring.datasource.password}") private val password: String
 ) : AbstractR2dbcConfiguration(){
 
     @Bean

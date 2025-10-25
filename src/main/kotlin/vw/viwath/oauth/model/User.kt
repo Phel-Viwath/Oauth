@@ -16,10 +16,7 @@ data class User(
 
     @Column("password")
     val password: String? = null,
-
-    @Column("name")
-    val name: String? = null,
-
+    
     @Column("authProvider")
     val provider: AuthProvider = AuthProvider.LOCAL,
 
