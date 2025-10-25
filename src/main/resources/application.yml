@@ -14,7 +14,31 @@ spring:
   sql:
     init:
       mode: never
-
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 1090690644469-0nphu70gjn0uf6u4eujpj6lg3so56qh5.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - openid
+              - profile
+              - email
+          github:
+            client-id: Ov23liEqNTpVdmrNTzGL
+            client-secret: 507d02882a7610604649b98ad5f471298b5377e0
+            scope:
+              - user:email
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
 # We use JWT tokens (HS256 with secret), we don’t need the Google resource server config
 #      resourceserver:
 #        jwt:
