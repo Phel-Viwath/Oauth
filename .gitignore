@@ -40,3 +40,4 @@ out/
 .kotlin
 app.log
 /src/main/resources/application.yml
+application.yml
