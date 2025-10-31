@@ -5,5 +5,6 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class MyKey(
-    @Value("\${jwt.secret}") val jwtSecret: String
+    @param:Value("\${jwt.secret}") val jwtSecret: String,
+    @param:Value("\${spring.security.oauth2.client.registration.google.client-id}") val googleClientId: String,
 )

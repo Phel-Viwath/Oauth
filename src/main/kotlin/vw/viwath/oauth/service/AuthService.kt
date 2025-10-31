@@ -11,6 +11,9 @@ import vw.viwath.oauth.model.UserDto
 
 @Service
 interface AuthService {
+    // In AuthService.kt interface
+    suspend fun processGitHubAccessToken(accessToken: String): ApiResponse<AuthResponse>
+    suspend fun processGoogleIdToken(idToken: String): ApiResponse<AuthResponse>
     suspend fun register(request: AuthRequest): ApiResponse<UserDto>
     suspend fun authenticate(request: AuthRequest): ApiResponse<AuthResponse>
     suspend fun processOAuthUser(oAuthUser: OAuthUser): ApiResponse<AuthResponse>

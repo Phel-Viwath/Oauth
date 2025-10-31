@@ -2,9 +2,14 @@ package vw.viwath.oauth.util
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -16,11 +21,13 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import vw.viwath.oauth.common.ApiResponse
+import vw.viwath.oauth.config.MyKey
 import vw.viwath.oauth.model.AuthResponse
+import vw.viwath.oauth.model.GitHubUserInfo
 import vw.viwath.oauth.service.OAuth2AuthenticationSuccessHandler
 import kotlin.collections.find
 
-internal val logger = LoggerFactory.getLogger(OAuth2AuthenticationSuccessHandler::class.java)
+private val logger = LoggerFactory.getLogger(OAuth2AuthenticationSuccessHandler::class.java)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class GitHubEmail(

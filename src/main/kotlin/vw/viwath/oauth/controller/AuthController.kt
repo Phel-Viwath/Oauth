@@ -10,11 +10,13 @@ import vw.viwath.oauth.common.Token
 import vw.viwath.oauth.common.toResponseEntity
 import vw.viwath.oauth.model.AuthRequest
 import vw.viwath.oauth.model.AuthResponse
+import vw.viwath.oauth.model.GitHubAuthRequest
+import vw.viwath.oauth.model.GoogleAuthRequest
 import vw.viwath.oauth.model.UserDto
 import vw.viwath.oauth.service.AuthService
 
 @RestController
-@RequestMapping("/api/auth", produces = [MediaType.APPLICATION_JSON_VALUE])
+@RequestMapping("/api/v1/auth", produces = [MediaType.APPLICATION_JSON_VALUE])
 class AuthController(
     private val authService: AuthService
 ) {
@@ -41,6 +43,22 @@ class AuthController(
             areFieldBlank -> ApiResponse.badRequest<AuthResponse>("Field cannot be blank").toResponseEntity()
             else -> authService.authenticate(request).toResponseEntity()
         }
+    }
+
+    @PostMapping("/google")
+    suspend fun googleSignIn(
+        @RequestBody googleAuthRequest: GoogleAuthRequest
+    ): ResponseEntity<ApiResponse<AuthResponse>>{
+        return authService.processGoogleIdToken(googleAuthRequest.idToken).toResponseEntity()
+    }
+
+    @PostMapping("/github")
+    suspend fun githubSignIn(
+        @RequestBody gitHubAuthRequest: GitHubAuthRequest
+    ): ResponseEntity<ApiResponse<AuthResponse>> {
+        return authService
+            .processGitHubAccessToken(gitHubAuthRequest.accessToken)
+            .toResponseEntity()
     }
 
     @PostMapping("/refresh")

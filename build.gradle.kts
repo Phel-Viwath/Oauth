@@ -21,9 +21,14 @@ repositories {
 dependencies {
     // Spring Framework
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+
+    // auth
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    implementation("com.google.api-client:google-api-client:2.2.0")
+
     implementation("org.springframework.boot:spring-boot-starter-security")
+
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.data:spring-data-relational")

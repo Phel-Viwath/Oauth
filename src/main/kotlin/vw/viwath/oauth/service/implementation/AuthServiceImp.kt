@@ -7,21 +7,77 @@ import kotlinx.coroutines.flow.map
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClient
 import vw.viwath.oauth.common.ApiResponse
 import vw.viwath.oauth.jwt.JwtService
 import vw.viwath.oauth.model.*
 import vw.viwath.oauth.repository.AuthRepository
 import vw.viwath.oauth.service.AuthService
+import vw.viwath.oauth.util.GoogleTokenVerifierUtil
+import vw.viwath.oauth.util.fetchGitHubUserInfo
+import vw.viwath.oauth.util.fetchPrimaryGitHubEmail
 import java.time.Instant
 
 @Component
 class AuthServiceImp(
     private val authRepository: AuthRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val googleTokenVerifierUtil: GoogleTokenVerifierUtil,
+    private val webClient: WebClient
 ) : AuthService {
 
     private val logger = LoggerFactory.getLogger(AuthServiceImp::class.java)
+
+    override suspend fun processGoogleIdToken(idToken: String): ApiResponse<AuthResponse> {
+        return try {
+            val payload =googleTokenVerifierUtil.verifyGoogleIdToken(idToken)
+                ?: return ApiResponse.badRequest("Invalid Google ID token")
+            val email = payload.email
+            val provider = AuthProvider.GOOGLE
+            val providerId = payload.subject
+
+            val oauthUser = OAuthUser(
+                email = email,
+                provider =provider,
+                providerId = providerId
+            )
+
+            logger.info("$oauthUser")
+
+            processOAuthUser(oauthUser)
+        } catch(e: Exception) {
+            logger.error("Failed to process Google ID token: ${e.message}", e)
+            ApiResponse.internalServerError("Failed to authenticate with Google")
+        }
+    }
+
+    override suspend fun processGitHubAccessToken(accessToken: String): ApiResponse<AuthResponse> {
+        return try {
+            // fetch user
+            val githubUser = fetchGitHubUserInfo(webClient, accessToken)
+                ?: return ApiResponse.badRequest("Invalid GitHub Access Token")
+
+            val email = githubUser.email
+                ?: fetchPrimaryGitHubEmail(webClient, accessToken)
+                ?: return ApiResponse.badRequest("GitHub account must have a verified email")
+
+            val providerId = githubUser.id.toString()
+
+            logger.info("GitHub user - Email: $email, ProviderId: $providerId")
+
+            val oAuthUser = OAuthUser(
+                email = email,
+                provider = AuthProvider.GITHUB,
+                providerId = providerId
+            )
+
+            processOAuthUser(oAuthUser)
+        }catch (e: Exception){
+            logger.error("Failed to process GitHub access token: ${e.message}", e)
+            ApiResponse.internalServerError("Failed to authenticate with GitHub: ${e.message}")
+        }
+    }
 
     override suspend fun register(request: AuthRequest): ApiResponse<UserDto> {
         return try {
