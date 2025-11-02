@@ -14,6 +14,7 @@ import vw.viwath.oauth.model.*
 import vw.viwath.oauth.repository.AuthRepository
 import vw.viwath.oauth.service.AuthService
 import vw.viwath.oauth.util.GoogleTokenVerifierUtil
+import vw.viwath.oauth.util.fetchFacebookUserInfo
 import vw.viwath.oauth.util.fetchGitHubUserInfo
 import vw.viwath.oauth.util.fetchPrimaryGitHubEmail
 import java.time.Instant
@@ -28,6 +29,28 @@ class AuthServiceImp(
 ) : AuthService {
 
     private val logger = LoggerFactory.getLogger(AuthServiceImp::class.java)
+
+    override suspend fun processFacebookAccessToken(accessToken: String): ApiResponse<AuthResponse> {
+        return try {
+            val facebookUser = fetchFacebookUserInfo(webClient, accessToken)
+                ?: return ApiResponse.badRequest("Invalid Facebook Access Token")
+            val email = facebookUser.email
+                ?: return ApiResponse.badRequest("Facebook account must have a verified email")
+            val providerId = facebookUser.id
+
+            logger.info("Facebook user - Email: $email, ProviderId: $providerId")
+
+            val oAuthUser = OAuthUser(
+                email = email,
+                provider = AuthProvider.FACEBOOK,
+                providerId = providerId
+            )
+            processOAuthUser(oAuthUser)
+        }catch (e: Exception){
+            logger.error("Failed to process Facebook: ${e.message}", e)
+            ApiResponse.internalServerError("Failed to authenticate with Facebook")
+        }
+    }
 
     override suspend fun processGoogleIdToken(idToken: String): ApiResponse<AuthResponse> {
         return try {

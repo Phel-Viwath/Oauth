@@ -10,6 +10,7 @@ import vw.viwath.oauth.common.Token
 import vw.viwath.oauth.common.toResponseEntity
 import vw.viwath.oauth.model.AuthRequest
 import vw.viwath.oauth.model.AuthResponse
+import vw.viwath.oauth.model.FacebookAuthRequest
 import vw.viwath.oauth.model.GitHubAuthRequest
 import vw.viwath.oauth.model.GoogleAuthRequest
 import vw.viwath.oauth.model.UserDto
@@ -58,6 +59,15 @@ class AuthController(
     ): ResponseEntity<ApiResponse<AuthResponse>> {
         return authService
             .processGitHubAccessToken(gitHubAuthRequest.accessToken)
+            .toResponseEntity()
+    }
+
+    @PostMapping("/facebook")
+    suspend fun facebookSignIn(
+        @RequestBody request: FacebookAuthRequest
+    ): ResponseEntity<ApiResponse<AuthResponse>>{
+        return authService
+            .processFacebookAccessToken(request.accessToken)
             .toResponseEntity()
     }
 
