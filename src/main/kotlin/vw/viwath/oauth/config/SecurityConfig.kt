@@ -16,14 +16,30 @@ import org.springframework.security.web.server.header.XFrameOptionsServerHttpHea
 import reactor.core.publisher.Mono
 import vw.viwath.oauth.jwt.JwtAuthenticationWebFilter
 import vw.viwath.oauth.jwt.JwtService
-import vw.viwath.oauth.service.OAuth2AuthenticationSuccessHandler
 import java.time.Duration
 import javax.crypto.spec.SecretKeySpec
+
+/**
+ * Note:
+ * We do NOT enable `oauth2Login` or `oauth2ResourceServer` here because our clients (React, Android, iOS)
+ * handle the OAuth2 login flow externally.
+ *
+ * In this architecture:
+ * - The frontend or mobile app performs the OAuth2 authentication directly with the provider
+ *   (e.g., Google, Facebook, GitHub) and gets the user's ID token or authorization code.
+ * - The client then sends that token or code to this backend API for verification and JWT issuance.
+ *
+ * Therefore, this backend does not need Spring Security’s built-in OAuth2 login or resource server features,
+ * since we manage authentication manually using `JwtAuthenticationWebFilter` and `JwtService`.
+ *
+ * This approach gives more flexibility for cross-platform authentication
+ * and avoids redirect-based login flows that are suited only for web apps served directly by Spring.
+ */
 
 @Configuration
 @EnableWebFluxSecurity
 class SecurityConfig(
-    private val oAuth2AuthenticationSuccessHandler: OAuth2AuthenticationSuccessHandler,
+    //private val oAuth2AuthenticationSuccessHandler: OAuth2AuthenticationSuccessHandler,
     private val jwtService: JwtService,
     private val myKey: MyKey
 ) {
@@ -83,7 +99,7 @@ class SecurityConfig(
             }
             .csrf { it.disable() }
             .httpBasic { it.disable() }
-            //.formLogin { it.disable() }
+            .formLogin { it.disable() }
             .logout { it.disable() }
             .authorizeExchange { exchanges ->
                 exchanges
@@ -99,9 +115,9 @@ class SecurityConfig(
                     .anyExchange()
                     .authenticated()
             }
-            .oauth2Login { oauth2 ->
-                oauth2.authenticationSuccessHandler(oAuth2AuthenticationSuccessHandler)
-            }
+//            .oauth2Login { oauth2 ->
+//                oauth2.authenticationSuccessHandler(oAuth2AuthenticationSuccessHandler)
+//            }
 //            .oauth2ResourceServer { oauth2 ->
 //                oauth2.jwt { jwt ->
 //                    jwt.jwtDecoder(jwtDecoder())
